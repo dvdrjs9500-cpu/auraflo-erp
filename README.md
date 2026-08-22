@@ -1,4 +1,4 @@
-# Kirana Flow
+# AuraFlo
 
 Build a high-fidelity, mobile-first web app prototype for "Auraflo" — a voice-native ERP designed for Indian MSME kirana shopkeepers. The app must be fully interactive, responsive, and styled with clean Tailwind CSS using a modern indigo/emerald dark/light-neutral palette.
 
