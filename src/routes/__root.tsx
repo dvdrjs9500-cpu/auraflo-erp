@@ -11,6 +11,11 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import { Toaster } from "@/components/ui/sonner";
+import { AurafloProvider } from "@/lib/auraflo/store";
+import { BottomNav, PitchBanner, TopBar } from "@/components/auraflo/Shell";
+import { VoicePanel } from "@/components/auraflo/VoicePanel";
+import { InvoiceModal } from "@/components/auraflo/InvoiceModal";
 
 function NotFoundComponent() {
   return (
@@ -120,8 +125,20 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-      <Outlet />
+      <AurafloProvider>
+        <div className="mx-auto min-h-screen max-w-md bg-background">
+          <PitchBanner />
+          <TopBar />
+          <main className="px-3 pt-4 pb-64">
+            {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+            <Outlet />
+          </main>
+          <VoicePanel />
+          <BottomNav />
+          <InvoiceModal />
+        </div>
+        <Toaster position="top-center" richColors closeButton />
+      </AurafloProvider>
     </QueryClientProvider>
   );
 }
