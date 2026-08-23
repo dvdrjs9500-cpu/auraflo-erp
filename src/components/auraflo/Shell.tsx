@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Home, Package, NotebookPen, ReceiptText, Sparkles } from "lucide-react";
+import { Home, Package, NotebookPen, ReceiptText, RotateCcw, Sparkles, Wifi } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SHOP, rupees } from "@/lib/auraflo/data";
 import { useAuraflo } from "@/lib/auraflo/store";
@@ -12,7 +12,7 @@ const NAV = [
 ] as const;
 
 export function TopBar() {
-  const { todaySales, pendingUdharCount, pendingUdharTotal } = useAuraflo();
+  const { todaySales, pendingUdharCount, pendingUdharTotal, resetDemo } = useAuraflo();
   const today = new Date().toLocaleDateString("en-IN", {
     weekday: "short",
     day: "numeric",
@@ -28,11 +28,25 @@ export function TopBar() {
           <p className="text-[11px] font-semibold opacity-90">{SHOP.name} · Coimbatore, TN</p>
           <p className="text-[11px] opacity-85">
             {today} · GSTIN {SHOP.gstin}
+            <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-white/15 px-2 py-0.5 text-[10px] font-bold text-primary-foreground">
+              <Wifi className="size-3" /> Offline Ready
+            </span>
           </p>
         </div>
-        <span className="flex size-10 items-center justify-center rounded-2xl bg-white/15">
-          <Sparkles className="size-5" />
-        </span>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={resetDemo}
+            aria-label="Reset demo data"
+            title="Reset demo data"
+            className="flex size-9 items-center justify-center rounded-xl bg-white/15 transition-colors hover:bg-white/25"
+          >
+            <RotateCcw className="size-4" />
+          </button>
+          <span className="flex size-10 items-center justify-center rounded-2xl bg-white/15">
+            <Sparkles className="size-5" />
+          </span>
+        </div>
       </div>
 
       <div className="mt-4 grid grid-cols-2 gap-2">

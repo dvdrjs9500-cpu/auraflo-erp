@@ -212,5 +212,4 @@ export const SEED_CUSTOMERS: Customer[] = [
   },
 ];
 
-export const rupees = (n: number) =>
-  "₹" + n.toLocaleString("en-IN", { maximumFractionDigits: 2 });
+export const rupees = (n: number) => "₹" + n.toLocaleString("en-IN", { maximumFractionDigits: 2 });

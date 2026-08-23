@@ -28,7 +28,8 @@ type SRInstance = {
 function getRecognitionCtor(): (new () => SRInstance) | null {
   if (typeof window === "undefined") return null;
   const w = window as unknown as Record<string, unknown>;
-  return (w["SpeechRecognition"] ?? w["webkitSpeechRecognition"] ?? null) as (new () => SRInstance) | null;
+  return (w["SpeechRecognition"] ?? w["webkitSpeechRecognition"] ?? null) as
+    (new () => SRInstance) | null;
 }
 
 /** Common ASR slips for Indian kirana vocabulary. */
@@ -97,6 +98,15 @@ export function useSpeech({ lang, onFinal }: Options) {
     recRef.current?.stop();
   }, []);
 
+  const resetRecognition = useCallback(() => {
+    recRef.current?.abort();
+    recRef.current = null;
+    finalRef.current = "";
+    setInterim("");
+    setStatus("idle");
+    setError(null);
+  }, []);
+
   const start = useCallback(() => {
     const Ctor = getRecognitionCtor();
     if (!Ctor) {
@@ -124,10 +134,11 @@ export function useSpeech({ lang, onFinal }: Options) {
         for (let a = 1; a < res.length; a++) {
           const alt = res[a]?.transcript ?? "";
           const score = (s: string) =>
-            (/ponni|arisi|rice|idhayam|nallennai|aachi|sambar|podi|aavin|butter|tata|salt|fortune|atta|sunlite|kadan|udhar|upi|rupees|mootai|packet/i.test(s)
+            (/ponni|arisi|rice|idhayam|nallennai|aachi|sambar|podi|aavin|butter|tata|salt|fortune|atta|sunlite|kadan|udhar|upi|rupees|mootai|packet/i.test(
+              s,
+            )
               ? 2
-              : 0) +
-            (/\d/.test(s) ? 1 : 0);
+              : 0) + (/\d/.test(s) ? 1 : 0);
           if (score(alt) > score(best)) best = alt;
         }
         if (res.isFinal) finalRef.current += best + " ";
@@ -180,5 +191,5 @@ export function useSpeech({ lang, onFinal }: Options) {
     }, 600);
   }, []);
 
-  return { supported, status, interim, error, start, stop, runManual };
+  return { supported, status, interim, error, start, stop, resetRecognition, runManual };
 }

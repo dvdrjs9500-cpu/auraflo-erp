@@ -5,7 +5,7 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * Auraflo design system — indigo (trust/tech) + emerald (money/success)
+ * Auraflo design system — emerald operations + saffron commerce
  * on a warm neutral canvas. All colors are oklch semantic tokens.
  */
 
@@ -70,17 +70,17 @@
   --card-foreground: oklch(0.21 0.035 268);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.21 0.035 268);
-  --primary: oklch(0.52 0.19 274);
-  --primary-foreground: oklch(0.985 0.005 260);
-  --primary-soft: oklch(0.95 0.03 274);
-  --primary-glow: oklch(0.66 0.17 288);
+  --primary: oklch(0.55 0.17 160);
+  --primary-foreground: oklch(0.985 0.005 160);
+  --primary-soft: oklch(0.94 0.05 160);
+  --primary-glow: oklch(0.66 0.15 160);
   --secondary: oklch(0.955 0.012 265);
   --secondary-foreground: oklch(0.29 0.05 270);
   --muted: oklch(0.958 0.008 262);
   --muted-foreground: oklch(0.52 0.025 265);
-  --accent: oklch(0.62 0.15 162);
-  --accent-foreground: oklch(0.99 0.01 160);
-  --accent-soft: oklch(0.945 0.05 162);
+  --accent: oklch(0.58 0.16 62);
+  --accent-foreground: oklch(0.99 0.01 70);
+  --accent-soft: oklch(0.95 0.06 76);
   --destructive: oklch(0.585 0.22 22);
   --destructive-foreground: oklch(0.99 0.005 20);
   --warning: oklch(0.72 0.16 62);
@@ -111,10 +111,10 @@
   --card-foreground: oklch(0.965 0.008 260);
   --popover: oklch(0.235 0.032 268);
   --popover-foreground: oklch(0.965 0.008 260);
-  --primary: oklch(0.68 0.17 280);
-  --primary-foreground: oklch(0.16 0.03 270);
-  --primary-soft: oklch(0.3 0.06 275);
-  --primary-glow: oklch(0.75 0.15 292);
+  --primary: oklch(0.72 0.15 160);
+  --primary-foreground: oklch(0.16 0.03 160);
+  --primary-soft: oklch(0.3 0.06 160);
+  --primary-glow: oklch(0.8 0.12 160);
   --secondary: oklch(0.29 0.035 268);
   --secondary-foreground: oklch(0.95 0.01 262);
   --muted: oklch(0.28 0.03 268);

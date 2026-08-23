@@ -95,7 +95,11 @@ export function VoicePanel() {
               autoFocus
               placeholder="Type: Murugan, Ponni rice 2 mootai, 2900 rupees, UPI paid"
               onChange={(e) => setTyped(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && submitTyped()}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.nativeEvent.isComposing && e.keyCode !== 229) {
+                  submitTyped();
+                }
+              }}
               className="h-10 border-0 text-sm shadow-none focus-visible:ring-0"
             />
             <Button size="icon" className="size-10 shrink-0" onClick={submitTyped}>
@@ -144,16 +148,23 @@ export function VoicePanel() {
               disabled={processing}
               aria-label={listening ? "Stop listening" : "Tap to speak"}
               className={cn(
-                "relative flex size-16 shrink-0 items-center justify-center rounded-full text-primary-foreground shadow-lift transition-transform active:scale-95",
-                listening ? "mic-ring-hot bg-destructive" : "mic-ring surface-gradient",
+                "relative flex size-20 shrink-0 items-center justify-center rounded-full text-primary-foreground shadow-lift transition-transform active:scale-95",
+                listening ? "mic-ring-hot bg-primary" : "mic-ring bg-primary",
               )}
             >
+              {listening && (
+                <span className="pointer-events-none absolute inset-[-10px] flex items-center justify-center gap-1 rounded-full border-2 border-primary/60">
+                  {[0, 1, 2, 3, 4, 5, 6].map((i) => (
+                    <span key={i} className="eq-bar h-5 w-1 rounded-full bg-primary" style={{ animationDelay: `${i * 90}ms` }} />
+                  ))}
+                </span>
+              )}
               {processing ? (
-                <Loader2 className="size-6 animate-spin" />
+                <Loader2 className="size-7 animate-spin" />
               ) : listening ? (
                 <Square className="size-5 fill-current" />
               ) : (
-                <Mic className="size-7" />
+                <Mic className="size-8" />
               )}
             </button>
 
@@ -175,8 +186,8 @@ export function VoicePanel() {
 
         {!listening && !processing && !interim && (
           <p className="px-2 text-center text-[10px] text-muted-foreground">
-            சொல்லுங்க: “முருகன், பொன்னி அரிசி 2 மூட்டை, 2900 ரூபாய், UPI” · Tamil, Tanglish & English
-            supported
+            சொல்லுங்க: “முருகன், பொன்னி அரிசி 2 மூட்டை, 2900 ரூபாய், UPI” · Tamil, Tanglish &
+            English supported
           </p>
         )}
       </div>
