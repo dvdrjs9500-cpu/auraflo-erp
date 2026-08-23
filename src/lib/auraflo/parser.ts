@@ -27,9 +27,9 @@ const NUM_WORDS: Record<string, number> = {
   naalu: 4, nangu: 4, anju: 5, aindhu: 5, ainthu: 5, aaru: 6, aru: 6, ezhu: 7, elu: 7,
   ettu: 8, onbadhu: 9, onbathu: 9, pathu: 10, patthu: 10, pannirendu: 12, pathinanju: 15,
   irubadhu: 20, irupathu: 20, muppadhu: 30, ambadhu: 50, aimbathu: 50,
-  nooru: 100, nuru: 100, aayiram: 1000, ayiram: 1000, ஆயிரம்: 1000, நூறு: 100,
-  ஒன்று: 1, ரெண்டு: 2, இரண்டு: 2, மூன்று: 3, நான்கு: 4, ஐந்து: 5, ஆறு: 6, ஏழு: 7,
-  எட்டு: 8, ஒன்பது: 9, பத்து: 10,
+  nooru: 100, nuru: 100, aayiram: 1000, ayiram: 1000, "ஆயிரம்": 1000, "நூறு": 100,
+  "ஒன்று": 1, "ரெண்டு": 2, "இரண்டு": 2, "மூன்று": 3, "நான்கு": 4, "ஐந்து": 5, "ஆறு": 6, "ஏழு": 7,
+  "எட்டு": 8, "ஒன்பது": 9, "பத்து": 10,
   one: 1, ek: 1, two: 2, do: 2, three: 3, teen: 3, tin: 3, four: 4, char: 4, chaar: 4,
   five: 5, paanch: 5, panch: 5, six: 6, chhe: 6, che: 6, seven: 7, saat: 7, sat: 7,
   eight: 8, aath: 8, ath: 8, nine: 9, nau: 9, ten: 10, das: 10, dus: 10,
@@ -53,7 +53,7 @@ const EXPENSE_WORDS = [
   "tempo", "diesel", "petrol", "chai", "expense", "kharcha", "kharch", "maintenance",
   "repair", "internet", "recharge", "loan", "emi", "wages",
   // Tamil
-  "vaadagai", "vadagai", "vaadaki", "sambalam", "current bill", "mின்", "kadai vaadagai",
+  "vaadagai", "vadagai", "vaadaki", "sambalam", "current bill", "kadai vaadagai",
   "செலவு", "வாடகை", "சம்பளம்", "மின்கட்டணம்", "selavu",
 ];
 
@@ -76,7 +76,7 @@ const SALE_WORDS = [
 const UDHAR_WORDS = [
   "udhar", "udhaar", "credit", "khata", "baaki", "baki", "pending", "due",
   // Tamil
-  "kadan", "kadhan", "kadan la", "kadanla", "bakki", "baakki", "kணக்கு", "kanakku",
+  "kadan", "kadhan", "kadan la", "kadanla", "bakki", "baakki", "kanakku",
   "கடன்", "பாக்கி", "கணக்கு",
 ];
 
