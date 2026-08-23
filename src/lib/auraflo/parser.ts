@@ -22,6 +22,14 @@ export type ParseResult = {
 };
 
 const NUM_WORDS: Record<string, number> = {
+  // Tamil (spoken + script) first — Tamil Nadu is the primary market
+  onnu: 1, ondru: 1, onru: 1, rendu: 2, irandu: 2, moonu: 3, moondru: 3, mundhu: 3,
+  naalu: 4, nangu: 4, anju: 5, aindhu: 5, ainthu: 5, aaru: 6, aru: 6, ezhu: 7, elu: 7,
+  ettu: 8, onbadhu: 9, onbathu: 9, pathu: 10, patthu: 10, pannirendu: 12, pathinanju: 15,
+  irubadhu: 20, irupathu: 20, muppadhu: 30, ambadhu: 50, aimbathu: 50,
+  nooru: 100, nuru: 100, aayiram: 1000, ayiram: 1000, "ஆயிரம்": 1000, "நூறு": 100,
+  "ஒன்று": 1, "ரெண்டு": 2, "இரண்டு": 2, "மூன்று": 3, "நான்கு": 4, "ஐந்து": 5, "ஆறு": 6, "ஏழு": 7,
+  "எட்டு": 8, "ஒன்பது": 9, "பத்து": 10,
   one: 1, ek: 1, two: 2, do: 2, three: 3, teen: 3, tin: 3, four: 4, char: 4, chaar: 4,
   five: 5, paanch: 5, panch: 5, six: 6, chhe: 6, che: 6, seven: 7, saat: 7, sat: 7,
   eight: 8, aath: 8, ath: 8, nine: 9, nau: 9, ten: 10, das: 10, dus: 10,
@@ -35,23 +43,42 @@ const UNIT_WORDS = [
   "bag", "bags", "bori", "boriyan", "bottle", "bottles", "botal", "packet", "packets",
   "pkt", "pack", "packs", "unit", "units", "piece", "pieces", "pcs", "kg", "kilo",
   "litre", "liter", "ltr", "box", "boxes", "dabba", "tin", "tins",
+  // Tamil units
+  "mootai", "moottai", "pothi", "paket", "pakket", "battle", "bottal", "kilo", "kilos",
+  "மூட்டை", "பாக்கெட்", "பாட்டில்", "கிலோ", "லிட்டர்",
 ];
 
 const EXPENSE_WORDS = [
   "rent", "kiraya", "salary", "tankhwah", "electricity", "bijli", "bill", "transport",
   "tempo", "diesel", "petrol", "chai", "expense", "kharcha", "kharch", "maintenance",
   "repair", "internet", "recharge", "loan", "emi", "wages",
+  // Tamil
+  "vaadagai", "vadagai", "vaadaki", "sambalam", "current bill", "kadai vaadagai",
+  "செலவு", "வாடகை", "சம்பளம்", "மின்கட்டணம்", "selavu",
 ];
 
 const STOCK_WORDS = [
   "added to stock", "add to stock", "stock me", "stock mein", "restock", "stock add",
   "purchased", "purchase", "khareeda", "kharida", "received", "aaya", "aayi", "aya",
   "inward", "godown", "supplier se", "stock badhao", "into stock", "in stock",
+  // Tamil
+  "stock la", "stockla", "stock sethu", "sethu", "vangunen", "vangiyachu", "vandhuruchu",
+  "vanthuruchu", "vangita", "stock ku", "ஸ்டாக்", "வாங்கினேன்", "சேர்",
 ];
 
-const SALE_WORDS = ["sold", "sale", "becha", "bech", "diya", "de diya", "bik", "bikri", "customer"];
+const SALE_WORDS = [
+  "sold", "sale", "becha", "bech", "diya", "de diya", "bik", "bikri", "customer",
+  // Tamil
+  "vitten", "vithen", "vitrom", "vittu", "vikra", "vikkira", "kuduthen", "kuduthaen",
+  "poyiduchu", "விற்றேன்", "விற்பனை", "கொடுத்தேன்",
+];
 
-const UDHAR_WORDS = ["udhar", "udhaar", "credit", "khata", "baaki", "baki", "pending", "due"];
+const UDHAR_WORDS = [
+  "udhar", "udhaar", "credit", "khata", "baaki", "baki", "pending", "due",
+  // Tamil
+  "kadan", "kadhan", "kadan la", "kadanla", "bakki", "baakki", "kanakku",
+  "கடன்", "பாக்கி", "கணக்கு",
+];
 
 const STOPWORDS = new Set([
   "the", "a", "of", "for", "to", "and", "with", "sold", "sale", "add", "added", "stock",
@@ -64,7 +91,8 @@ function normalize(text: string) {
   return text
     .toLowerCase()
     .replace(/[₹]/g, " rupees ")
-    .replace(/[^a-z0-9.,\s]/g, " ")
+    // keep Tamil script (U+0B80–U+0BFF) alongside latin
+    .replace(/[^a-z0-9.,\u0B80-\u0BFF\s]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
 }
@@ -101,8 +129,9 @@ function extractAmount(tokens: string[]): number | null {
 
 function detectPayment(text: string): PaymentMethod {
   if (/\b(upi|gpay|google pay|phonepe|phone pay|paytm|online|scan|qr)\b/.test(text)) return "upi";
-  if (/\b(udhar|udhaar|credit|khata|baaki|baki|due|pending|likh do|likh lo)\b/.test(text)) return "credit";
-  if (/\b(cash|nakad|nagad|cash paid)\b/.test(text)) return "cash";
+  if (/(udhar|udhaar|credit|khata|baaki|baki|due|pending|likh do|likh lo|kadan|kadhan|bakki|kanakku|கடன்|பாக்கி)/.test(text))
+    return "credit";
+  if (/(cash|nakad|nagad|rokkam|panam|kaasu|காசு|ரொக்கம்|பணம்)/.test(text)) return "cash";
   return "cash";
 }
 
@@ -273,38 +302,44 @@ export function parseCommand(
 export const PRESETS = [
   {
     id: "preset1",
-    label: "Fortune Atta Sale",
-    hint: "Credit sale to Rameshji",
-    text: "Rameshji, Fortune Atta 5 bags, 1200 rupees, UPI paid",
+    label: "அரிசி விற்பனை · Rice Sale",
+    hint: "Murugan · UPI",
+    text: "Murugan, Ponni rice 2 mootai, 2900 rupees, UPI paid",
   },
   {
     id: "preset2",
-    label: "Oil Sale · Cash",
-    hint: "2 bottles Sunlite",
-    text: "Sold 2 bottles of Fortune Sunlite Oil for 360 cash",
+    label: "நல்லெண்ணெய் · Oil Cash",
+    hint: "Idhayam 2 bottles",
+    text: "Idhayam nallennai rendu bottle vitten 640 cash",
   },
   {
     id: "preset3",
-    label: "Low Stock Trigger",
-    hint: "Amul Butter runs out",
-    text: "Sold 1 Amul Butter for 58 cash",
+    label: "Low Stock · ஆவின் வெண்ணெய்",
+    hint: "Aavin Butter runs low",
+    text: "Aavin butter 1 unit sold 58 cash",
   },
   {
     id: "preset4",
-    label: "Stock Inward",
+    label: "ஸ்டாக் · Salt Inward",
     hint: "Tata Salt restock",
-    text: "Tata Salt 10 packets added to stock",
+    text: "Tata Salt pathu packet stock la sethen",
   },
   {
     id: "preset5",
-    label: "Quick Expense",
-    hint: "Shop rent",
-    text: "Paid shop rent 5000 cash",
+    label: "செலவு · Shop Rent",
+    hint: "Kadai vaadagai",
+    text: "Kadai vaadagai 5000 cash kuduthen",
   },
   {
     id: "preset6",
-    label: "Udhar Entry",
-    hint: "Suresh khata",
-    text: "Add 150 rupees udhar to Suresh",
+    label: "கடன் · Udhar Entry",
+    hint: "Lakshmi khata",
+    text: "Lakshmi ku 150 rupees kadan sertha",
+  },
+  {
+    id: "preset7",
+    label: "சாம்பார் பொடி · Aachi",
+    hint: "3 packets credit",
+    text: "Karthik Aachi sambar podi moonu packet kadan",
   },
 ];

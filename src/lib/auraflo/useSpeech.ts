@@ -33,6 +33,22 @@ function getRecognitionCtor(): (new () => SRInstance) | null {
 
 /** Common ASR slips for Indian kirana vocabulary. */
 const CORRECTIONS: [RegExp, string][] = [
+  // Tamil Nadu kirana vocabulary
+  [/\b(?:aachi|aatchi|archie|aarchi|achi)\b/gi, "Aachi"],
+  [/\b(?:idhayam|idayam|ithayam|hridayam)\b/gi, "Idhayam"],
+  [/\b(?:nalla ennai|nallennai|nalla oil|nal ennai)\b/gi, "nallennai"],
+  [/\b(?:aavin|avin|aaveen|a win)\b/gi, "Aavin"],
+  [/\b(?:ponni|poni|punni|phoney)\b/gi, "Ponni"],
+  [/\b(?:sambhar|sambar|shambar)\b/gi, "sambar"],
+  [/\b(?:podi|pody|poodi)\b/gi, "podi"],
+  [/\b(?:mootai|moottai|mutai|motta)\b/gi, "mootai"],
+  [/\b(?:kadan|kadhan|kadhan|kaden|kadai kadan)\b/gi, "kadan"],
+  [/\b(?:vaadagai|vadagai|vadaki|vaadaki)\b/gi, "vaadagai"],
+  [/\b(?:rendu|randu|rendhu)\b/gi, "rendu"],
+  [/\b(?:moonu|munu|moonru)\b/gi, "moonu"],
+  [/\b(?:anju|anchu|angu)\b/gi, "anju"],
+  [/\b(?:pathu|patthu|pattu)\b/gi, "pathu"],
+  [/\b(?:vitten|vithen|vithan|written)\b/gi, "vitten"],
   [/\bfortunate?\b/gi, "Fortune"],
   [/\bfor tune\b/gi, "Fortune"],
   [/\bsunlight\b/gi, "Sunlite"],
@@ -108,7 +124,9 @@ export function useSpeech({ lang, onFinal }: Options) {
         for (let a = 1; a < res.length; a++) {
           const alt = res[a]?.transcript ?? "";
           const score = (s: string) =>
-            (/fortune|atta|sunlite|tata|salt|amul|butter|udhar|upi|rupees/i.test(s) ? 2 : 0) +
+            (/ponni|arisi|rice|idhayam|nallennai|aachi|sambar|podi|aavin|butter|tata|salt|fortune|atta|sunlite|kadan|udhar|upi|rupees|mootai|packet/i.test(s)
+              ? 2
+              : 0) +
             (/\d/.test(s) ? 1 : 0);
           if (score(alt) > score(best)) best = alt;
         }
