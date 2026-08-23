@@ -28,7 +28,7 @@ type SRInstance = {
 function getRecognitionCtor(): (new () => SRInstance) | null {
   if (typeof window === "undefined") return null;
   const w = window as unknown as Record<string, unknown>;
-  return (w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null) as (new () => SRInstance) | null;
+  return (w["SpeechRecognition"] ?? w["webkitSpeechRecognition"] ?? null) as (new () => SRInstance) | null;
 }
 
 /** Common ASR slips for Indian kirana vocabulary. */
@@ -102,6 +102,7 @@ export function useSpeech({ lang, onFinal }: Options) {
       let live = "";
       for (let i = e.resultIndex; i < e.results.length; i++) {
         const res = e.results[i];
+        if (!res) continue;
         // Pick the alternative that mentions catalogue-ish vocabulary when possible.
         let best = res[0]?.transcript ?? "";
         for (let a = 1; a < res.length; a++) {
