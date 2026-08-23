@@ -61,7 +61,9 @@ function Invoices() {
               <div className="min-w-0">
                 <p className="font-display text-sm font-bold">{t.invoiceNo}</p>
                 <p className="truncate text-[11px] text-muted-foreground">
-                  {t.customer} · {new Date(t.at).toLocaleTimeString("en-IN", {
+                  {t.customer}
+                  {" · "}
+                  {new Date(t.at).toLocaleTimeString("en-IN", {
                     hour: "2-digit",
                     minute: "2-digit",
                   })}

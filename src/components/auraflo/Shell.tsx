@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Home, Package, NotebookPen, ReceiptText, Sparkles } from "lucide-react";
+import { Home, Package, NotebookPen, ReceiptText, RotateCcw, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SHOP, rupees } from "@/lib/auraflo/data";
 import { useAuraflo } from "@/lib/auraflo/store";
@@ -12,7 +12,7 @@ const NAV = [
 ] as const;
 
 export function TopBar() {
-  const { todaySales, pendingUdharCount, pendingUdharTotal } = useAuraflo();
+  const { todaySales, pendingUdharCount, pendingUdharTotal, resetDemo } = useAuraflo();
   const today = new Date().toLocaleDateString("en-IN", {
     weekday: "short",
     day: "numeric",
@@ -30,9 +30,20 @@ export function TopBar() {
             {today} · GSTIN {SHOP.gstin}
           </p>
         </div>
-        <span className="flex size-10 items-center justify-center rounded-2xl bg-white/15">
-          <Sparkles className="size-5" />
-        </span>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={resetDemo}
+            aria-label="Reset demo data"
+            title="Reset demo data"
+            className="flex size-9 items-center justify-center rounded-xl bg-white/15 transition-colors hover:bg-white/25"
+          >
+            <RotateCcw className="size-4" />
+          </button>
+          <span className="flex size-10 items-center justify-center rounded-2xl bg-white/15">
+            <Sparkles className="size-5" />
+          </span>
+        </div>
       </div>
 
       <div className="mt-4 grid grid-cols-2 gap-2">

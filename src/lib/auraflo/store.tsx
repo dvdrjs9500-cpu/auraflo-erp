@@ -1,11 +1,4 @@
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useMemo,
-  useState,
-  type ReactNode,
-} from "react";
+import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import {
   SEED_CUSTOMERS,
@@ -39,6 +32,7 @@ type Ctx = {
   preview: (transcript: string) => ParseResult;
   settleCustomer: (id: string) => void;
   restock: (productId: string, qty: number) => void;
+  resetDemo: () => void;
 };
 
 const AurafloContext = createContext<Ctx | null>(null);
@@ -158,7 +152,8 @@ export function AurafloProvider({ children }: { children: ReactNode }) {
         );
 
         const amt = parsed.amount ?? lines.reduce((s, l) => s + l.qty * l.unitPrice, 0);
-        const customer = parsed.customer ?? (parsed.intent === "ADD_STOCK" ? "Supplier" : "Walk-in customer");
+        const customer =
+          parsed.customer ?? (parsed.intent === "ADD_STOCK" ? "Supplier" : "Walk-in customer");
 
         if (parsed.intent === "ADD_SALE" && parsed.payment === "credit") {
           setCustomers((cs) => {
@@ -224,10 +219,17 @@ export function AurafloProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const restock = useCallback((productId: string, qty: number) => {
-    setProducts((ps) =>
-      ps.map((p) => (p.id === productId ? { ...p, stock: p.stock + qty } : p)),
-    );
+    if (!Number.isInteger(qty) || qty <= 0) return;
+    setProducts((ps) => ps.map((p) => (p.id === productId ? { ...p, stock: p.stock + qty } : p)));
     toast.success("Stock inward recorded");
+  }, []);
+
+  const resetDemo = useCallback(() => {
+    setProducts(SEED_PRODUCTS);
+    setCustomers(SEED_CUSTOMERS);
+    setTransactions([]);
+    setInvoice(null);
+    toast.success("Demo data reset");
   }, []);
 
   const value = useMemo<Ctx>(() => {
@@ -250,8 +252,19 @@ export function AurafloProvider({ children }: { children: ReactNode }) {
       preview,
       settleCustomer,
       restock,
+      resetDemo,
     };
-  }, [products, customers, transactions, invoice, execute, preview, settleCustomer, restock]);
+  }, [
+    products,
+    customers,
+    transactions,
+    invoice,
+    execute,
+    preview,
+    settleCustomer,
+    restock,
+    resetDemo,
+  ]);
 
   return <AurafloContext.Provider value={value}>{children}</AurafloContext.Provider>;
 }

@@ -95,7 +95,11 @@ export function VoicePanel() {
               autoFocus
               placeholder="Type: Murugan, Ponni rice 2 mootai, 2900 rupees, UPI paid"
               onChange={(e) => setTyped(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && submitTyped()}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.nativeEvent.isComposing && e.keyCode !== 229) {
+                  submitTyped();
+                }
+              }}
               className="h-10 border-0 text-sm shadow-none focus-visible:ring-0"
             />
             <Button size="icon" className="size-10 shrink-0" onClick={submitTyped}>
@@ -175,8 +179,8 @@ export function VoicePanel() {
 
         {!listening && !processing && !interim && (
           <p className="px-2 text-center text-[10px] text-muted-foreground">
-            சொல்லுங்க: “முருகன், பொன்னி அரிசி 2 மூட்டை, 2900 ரூபாய், UPI” · Tamil, Tanglish & English
-            supported
+            சொல்லுங்க: “முருகன், பொன்னி அரிசி 2 மூட்டை, 2900 ரூபாய், UPI” · Tamil, Tanglish &
+            English supported
           </p>
         )}
       </div>
