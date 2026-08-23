@@ -79,7 +79,7 @@ function wordsToNumber(token: string): number | null {
 function extractAmount(tokens: string[]): number | null {
   const candidates: number[] = [];
   for (let i = 0; i < tokens.length; i++) {
-    const n = wordsToNumber(tokens[i].replace(/,/g, ""));
+    const n = wordsToNumber((tokens[i] ?? "").replace(/,/g, ""));
     if (n === null) continue;
     let value = n;
     const next = tokens[i + 1];
@@ -130,7 +130,7 @@ function qtyNear(tokens: string[], product: Product): number {
   tokens.forEach((t, i) => {
     if (bag.has(t)) idxs.push(i);
   });
-  const anchor = idxs.length ? idxs[0] : 0;
+  const anchor = idxs.length ? idxs[0]! : 0;
   let best: { q: number; d: number } | null = null;
   tokens.forEach((t, i) => {
     const n = wordsToNumber(t.replace(/,/g, ""));
@@ -147,7 +147,11 @@ function qtyNear(tokens: string[], product: Product): number {
   return best ? (best as { q: number }).q : 1;
 }
 
-function extractCustomer(raw: string, tokens: string[], customers: Customer[]) {
+function extractCustomer(
+  raw: string,
+  tokens: string[],
+  customers: Customer[],
+): { name: string | null; id: string | null } {
   const lower = raw.toLowerCase();
   for (const c of customers) {
     if (c.aliases.some((a) => lower.includes(a))) return { name: c.name, id: c.id };
@@ -158,7 +162,7 @@ function extractCustomer(raw: string, tokens: string[], customers: Customer[]) {
     return { name: clean.charAt(0).toUpperCase() + clean.slice(1), id: null };
   }
   const to = raw.match(/\b(?:to|for|ko)\s+([A-Z][a-z]+)\b/);
-  if (to) return { name: to[1], id: null };
+  if (to && to[1]) return { name: to[1], id: null };
   return { name: null, id: null };
 }
 
@@ -233,7 +237,7 @@ export function parseCommand(
     };
   }
 
-  const top = matches.slice(0, 2).filter((m, i) => i === 0 || m.score >= matches[0].score);
+  const top = matches.slice(0, 2).filter((m, i) => i === 0 || m.score >= matches[0]!.score);
   const items: ParsedItem[] = top.map((m) => ({
     productId: m.product.id,
     name: m.product.name,
@@ -260,7 +264,7 @@ export function parseCommand(
     customer: cust.name,
     customerId: cust.id,
     payment,
-    confidence: Math.min(0.98, 0.6 + matches[0].score * 0.08 + (saleHinted ? 0.1 : 0) + (amount ? 0.1 : 0)),
+    confidence: Math.min(0.98, 0.6 + matches[0]!.score * 0.08 + (saleHinted ? 0.1 : 0) + (amount ? 0.1 : 0)),
     transcript: raw,
     notes,
   };
