@@ -8,13 +8,14 @@ import { useSpeech } from "@/lib/auraflo/useSpeech";
 import { PRESETS } from "@/lib/auraflo/parser";
 
 const LANGS = [
+  { code: "ta-IN", label: "தமிழ்" },
   { code: "en-IN", label: "EN" },
   { code: "hi-IN", label: "हिं" },
 ];
 
 export function VoicePanel() {
   const { execute, openInvoice } = useAuraflo();
-  const [lang, setLang] = useState("en-IN");
+  const [lang, setLang] = useState("ta-IN");
   const [typed, setTyped] = useState("");
   const [typeMode, setTypeMode] = useState(false);
   const [presetsOpen, setPresetsOpen] = useState(true);
@@ -59,11 +60,11 @@ export function VoicePanel() {
                 <Loader2 className="size-4 animate-spin text-primary" />
               )}
               <span className="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
-                {listening ? "Listening…" : "Understanding your command…"}
+                {listening ? "கேட்கிறேன் · Listening…" : "புரிந்துகொள்கிறேன் · Processing…"}
               </span>
             </div>
             <p className="mt-1.5 text-sm leading-snug font-medium">
-              {interim || <span className="text-muted-foreground">Speak now…</span>}
+              {interim || <span className="text-muted-foreground">இப்போ பேசுங்க…</span>}
             </p>
           </div>
         )}
@@ -92,7 +93,7 @@ export function VoicePanel() {
             <Input
               value={typed}
               autoFocus
-              placeholder="Type: Rameshji, Fortune Atta 5 bags, 1200 rupees, UPI paid"
+              placeholder="Type: Murugan, Ponni rice 2 mootai, 2900 rupees, UPI paid"
               onChange={(e) => setTyped(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && submitTyped()}
               className="h-10 border-0 text-sm shadow-none focus-visible:ring-0"
@@ -166,7 +167,7 @@ export function VoicePanel() {
                 <Keyboard className="size-3" /> Type
               </Button>
               <span className="text-right text-[9px] leading-tight text-muted-foreground">
-                {listening ? "Listening…" : "Tap to speak"}
+                {listening ? "கேட்கிறேன்…" : "பேச தட்டவும்"}
               </span>
             </div>
           </div>
@@ -174,7 +175,8 @@ export function VoicePanel() {
 
         {!listening && !processing && !interim && (
           <p className="px-2 text-center text-[10px] text-muted-foreground">
-            Try: “Rameshji, Fortune Atta 5 bags, 1200 rupees, UPI paid”
+            சொல்லுங்க: “முருகன், பொன்னி அரிசி 2 மூட்டை, 2900 ரூபாய், UPI” · Tamil, Tanglish & English
+            supported
           </p>
         )}
       </div>
