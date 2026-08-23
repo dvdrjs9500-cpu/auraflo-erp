@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Home, Package, NotebookPen, ReceiptText, RotateCcw, Sparkles } from "lucide-react";
+import { Home, Package, NotebookPen, ReceiptText, RotateCcw, Sparkles, Wifi } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SHOP, rupees } from "@/lib/auraflo/data";
 import { useAuraflo } from "@/lib/auraflo/store";
@@ -28,6 +28,9 @@ export function TopBar() {
           <p className="text-[11px] font-semibold opacity-90">{SHOP.name} · Coimbatore, TN</p>
           <p className="text-[11px] opacity-85">
             {today} · GSTIN {SHOP.gstin}
+            <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-white/15 px-2 py-0.5 text-[10px] font-bold text-primary-foreground">
+              <Wifi className="size-3" /> Offline Ready
+            </span>
           </p>
         </div>
         <div className="flex items-center gap-2">

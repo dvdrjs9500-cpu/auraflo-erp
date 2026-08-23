@@ -45,6 +45,19 @@ function Ledger() {
     <div className="space-y-4">
       <LowStockBanner items={lowStock} />
 
+      <section className="rounded-2xl border border-primary/20 bg-primary-soft p-4 shadow-soft">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-[10px] font-bold tracking-[0.16em] text-primary uppercase">Today's Insights</p>
+            <p className="mt-1 font-display text-sm font-bold">Top Item Sold: Ponni Rice</p>
+          </div>
+          <div className="text-right">
+            <p className="text-[10px] text-muted-foreground">Profit Estimate</p>
+            <p className="font-display text-lg font-extrabold text-accent">₹420</p>
+          </div>
+        </div>
+      </section>
+
       <section>
         <div className="mb-2 flex items-center justify-between">
           <h2 className="font-display text-sm font-bold">Today's ledger</h2>

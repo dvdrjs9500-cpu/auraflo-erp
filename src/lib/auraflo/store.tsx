@@ -199,7 +199,7 @@ export function AurafloProvider({ children }: { children: ReactNode }) {
         toast.success(message, {
           description: `Invoice ${t.invoiceNo} · heard: "${transcript}"`,
         });
-        speak(message);
+        speak(t.kind === "sale" ? "விற்பனை பதிவு செய்யப்பட்டது" : message);
       }
 
       touched.forEach((p) => {

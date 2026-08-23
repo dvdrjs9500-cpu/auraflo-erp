@@ -1,7 +1,7 @@
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Printer, Share2, ShieldCheck } from "lucide-react";
+import { Headphones, Printer, Share2, ShieldCheck } from "lucide-react";
 import { SHOP, rupees, type Txn } from "@/lib/auraflo/data";
 import { useAuraflo } from "@/lib/auraflo/store";
 
@@ -159,9 +159,23 @@ export function InvoiceModal() {
           </div>
         </div>
 
-        <div className="no-print flex gap-2 border-t p-4">
+        <div className="no-print grid grid-cols-2 gap-2 border-t p-4">
           <Button
-            className="flex-1 bg-accent text-accent-foreground hover:bg-accent/90"
+            className="col-span-2 bg-accent text-accent-foreground hover:bg-accent/90"
+            onClick={() => {
+              if ("speechSynthesis" in window) {
+                const utterance = new SpeechSynthesisUtterance("விற்பனை பதிவு செய்யப்பட்டது");
+                utterance.lang = "ta-IN";
+                window.speechSynthesis.cancel();
+                window.speechSynthesis.speak(utterance);
+              }
+              window.open(`https://wa.me/?text=${encodeURIComponent(`${shareText}\n\nAudio confirmation: விற்பனை பதிவு செய்யப்பட்டது`)}`, "_blank", "noopener");
+            }}
+          >
+            <Headphones className="size-4" /> Send WhatsApp Audio + Receipt
+          </Button>
+          <Button
+            className="bg-accent-soft text-accent hover:bg-accent-soft/90"
             onClick={() =>
               window.open(
                 `https://wa.me/?text=${encodeURIComponent(shareText)}`,
@@ -172,7 +186,7 @@ export function InvoiceModal() {
           >
             <Share2 className="size-4" /> WhatsApp
           </Button>
-          <Button variant="outline" className="flex-1" onClick={() => window.print()}>
+          <Button variant="outline" onClick={() => window.print()}>
             <Printer className="size-4" /> Print
           </Button>
         </div>
@@ -180,3 +194,4 @@ export function InvoiceModal() {
     </Dialog>
   );
 }
+
