@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Mic, Keyboard, Loader2, Send, Square, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,15 +14,80 @@ const LANGS = [
 ];
 
 export function VoicePanel() {
-  const { execute, openInvoice } = useAuraflo();
+  const { execute, openInvoice, preview } = useAuraflo();
   const [lang, setLang] = useState("ta-IN");
+  const [paymentState, setPaymentState] = useState<"Idle" | "Completed" | "Credit" | "Pending">(
+    "Idle",
+  );
+  const [billAmount, setBillAmount] = useState(0);
+  const [paymentMessage, setPaymentMessage] = useState("");
+  const [pendingCreditTranscript, setPendingCreditTranscript] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!paymentMessage) return;
+    const timeout = window.setTimeout(() => setPaymentMessage(""), 3200);
+    return () => window.clearTimeout(timeout);
+  }, [paymentMessage]);
+
+  const sendWhatsAppInvoice = () => {
+    // Placeholder for the production WhatsApp invoice integration.
+  };
   const [typed, setTyped] = useState("");
   const [typeMode, setTypeMode] = useState(false);
   const [presetsOpen, setPresetsOpen] = useState(true);
 
   const handle = (text: string) => {
-    const out = execute(text);
-    if (out.txn && out.txn.kind === "sale") openInvoice(out.txn);
+    const normalized = text.toLowerCase().replace(/[.,!?]/g, " ").replace(/\s+/g, " ").trim();
+
+    // The next utterance after "kadan" is the customer name. Do this before
+    // checking payment keywords so a name like "Cash" cannot change the flow.
+    if (pendingCreditTranscript) {
+      const customerName = text.trim();
+      if (!customerName) return;
+      const out = execute(`${pendingCreditTranscript} ${customerName}`);
+      setPendingCreditTranscript(null);
+      setPaymentState("Credit");
+      setPaymentMessage(`Credit recorded for ${customerName}.`);
+      if (out.txn?.kind === "sale") {
+        setBillAmount(out.txn.amount);
+        openInvoice(out.txn);
+      }
+      return;
+    }
+
+    const isCash = /(?:^|\s)(?:kaasu kooduthaaru|kaasu|cash)(?:$|\s)/i.test(normalized);
+    const isCredit = /(?:^|\s)kadan(?:$|\s)/i.test(normalized);
+    const isUpi = /(?:^|\s)(?:waiting to pay|upi|scan)(?:$|\s)/i.test(normalized);
+
+    // Parse the sale when possible, but payment commands must also work when
+    // the utterance contains only "cash", "kadan", or "upi".
+    const parsed = preview(text);
+    const out = isCredit ? null : execute(text);
+    const amount = out?.txn?.amount ?? parsed.amount ?? billAmount;
+    if (amount > 0) setBillAmount(amount);
+
+    if (isCredit) {
+      setPendingCreditTranscript(text);
+      setPaymentState("Credit");
+      setPaymentMessage("Yaaruku kadan?");
+      return;
+    }
+
+    if (isCash) {
+      setPaymentState("Completed");
+      setPaymentMessage("Payment completed successfully.");
+      sendWhatsAppInvoice();
+    } else if (isUpi) {
+      setPaymentState("Pending");
+      setPaymentMessage("Scan the QR code to complete payment.");
+    }
+
+    if (out?.txn?.kind === "sale") openInvoice(out.txn);
+  };
+
+  const completeUpiPayment = () => {
+    setPaymentState("Completed");
+    setPaymentMessage("Payment completed successfully.");
   };
 
   const { supported, status, interim, error, start, stop, runManual } = useSpeech({
@@ -71,6 +136,55 @@ export function VoicePanel() {
 
         {error && !listening && (
           <p className="rounded-xl bg-destructive/10 px-3 py-2 text-xs text-destructive">{error}</p>
+        )}
+
+        {(paymentMessage || paymentState !== "Idle") && !listening && !processing && (
+          <div className="rounded-2xl border bg-card/95 p-3 shadow-lift backdrop-blur">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-[10px] font-semibold tracking-wide text-muted-foreground uppercase">
+                  Payment · {paymentState}
+                </p>
+                <p className="mt-1 text-sm font-semibold">{paymentMessage}</p>
+              </div>
+              {paymentState === "Completed" && (
+                <span className="text-xl text-accent" aria-label="Completed">
+                  ✓
+                </span>
+              )}
+            </div>
+            {paymentState === "Credit" && pendingCreditTranscript && (
+              <p className="mt-2 text-xs text-muted-foreground">Yaaruku kadan?</p>
+            )}
+            {paymentState === "Pending" && (
+              <div className="mt-3 flex items-center gap-3 rounded-xl bg-muted p-3">
+                <div
+                  className="grid size-24 shrink-0 grid-cols-5 gap-0.5 rounded-lg bg-white p-2"
+                  role="img"
+                  aria-label="UPI QR code placeholder"
+                >
+                  {Array.from({ length: 25 }, (_, index) => (
+                    <span
+                      key={index}
+                      className={cn(
+                        "rounded-[1px]",
+                        (index * 7 + billAmount) % 5 < 2 ? "bg-black" : "bg-white",
+                      )}
+                    />
+                  ))}
+                </div>
+                <div className="min-w-0 text-xs">
+                  <p className="font-semibold">Scan to pay ₹{billAmount.toFixed(2)}</p>
+                  <p className="mt-1 break-all text-muted-foreground">
+                    upi://pay?pa=myupi@bank&pn=Auraflo&am={billAmount.toFixed(2)}&cu=INR
+                  </p>
+                  <Button size="sm" className="mt-2" onClick={completeUpiPayment}>
+                    Done
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
         )}
 
         {presetsOpen && !listening && (
@@ -155,7 +269,11 @@ export function VoicePanel() {
               {listening && (
                 <span className="pointer-events-none absolute inset-[-10px] flex items-center justify-center gap-1 rounded-full border-2 border-primary/60">
                   {[0, 1, 2, 3, 4, 5, 6].map((i) => (
-                    <span key={i} className="eq-bar h-5 w-1 rounded-full bg-primary" style={{ animationDelay: `${i * 90}ms` }} />
+                    <span
+                      key={i}
+                      className="eq-bar h-5 w-1 rounded-full bg-primary"
+                      style={{ animationDelay: `${i * 90}ms` }}
+                    />
                   ))}
                 </span>
               )}
