@@ -37,13 +37,17 @@ export function VoicePanel() {
   const [presetsOpen, setPresetsOpen] = useState(true);
 
   const handle = (text: string) => {
-    const normalized = text.toLowerCase();
+    const normalized = text.toLowerCase().replace(/[.,!?]/g, " ").replace(/\s+/g, " ").trim();
 
+    // The next utterance after "kadan" is the customer name. Do this before
+    // checking payment keywords so a name like "Cash" cannot change the flow.
     if (pendingCreditTranscript) {
-      const out = execute(`${pendingCreditTranscript} ${text}`);
+      const customerName = text.trim();
+      if (!customerName) return;
+      const out = execute(`${pendingCreditTranscript} ${customerName}`);
       setPendingCreditTranscript(null);
       setPaymentState("Credit");
-      setPaymentMessage(`Credit recorded for ${text}.`);
+      setPaymentMessage(`Credit recorded for ${customerName}.`);
       if (out.txn?.kind === "sale") {
         setBillAmount(out.txn.amount);
         openInvoice(out.txn);
@@ -51,31 +55,34 @@ export function VoicePanel() {
       return;
     }
 
-    const isCash = /\b(?:kaasu|cash)\b|kaasu kooduthaaru/i.test(normalized);
-    const isCredit = /\bkadan\b/i.test(normalized);
-    const isUpi = /\b(?:upi|waiting to pay|scan)\b/i.test(normalized);
+    const isCash = /(?:^|\s)(?:kaasu kooduthaaru|kaasu|cash)(?:$|\s)/i.test(normalized);
+    const isCredit = /(?:^|\s)kadan(?:$|\s)/i.test(normalized);
+    const isUpi = /(?:^|\s)(?:waiting to pay|upi|scan)(?:$|\s)/i.test(normalized);
+
+    // Parse the sale when possible, but payment commands must also work when
+    // the utterance contains only "cash", "kadan", or "upi".
+    const parsed = preview(text);
+    const out = isCredit ? null : execute(text);
+    const amount = out?.txn?.amount ?? parsed.amount ?? billAmount;
+    if (amount > 0) setBillAmount(amount);
 
     if (isCredit) {
       setPendingCreditTranscript(text);
-      setBillAmount(preview(text).amount ?? 0);
       setPaymentState("Credit");
       setPaymentMessage("Yaaruku kadan?");
       return;
     }
 
-    const out = execute(text);
-    if (out.txn) {
-      setBillAmount(out.txn.amount);
-      if (isCash) {
-        setPaymentState("Completed");
-        setPaymentMessage("Payment completed successfully.");
-        sendWhatsAppInvoice();
-      } else if (isUpi) {
-        setPaymentState("Pending");
-        setPaymentMessage("Scan the QR code to complete payment.");
-      }
-      if (out.txn.kind === "sale") openInvoice(out.txn);
+    if (isCash) {
+      setPaymentState("Completed");
+      setPaymentMessage("Payment completed successfully.");
+      sendWhatsAppInvoice();
+    } else if (isUpi) {
+      setPaymentState("Pending");
+      setPaymentMessage("Scan the QR code to complete payment.");
     }
+
+    if (out?.txn?.kind === "sale") openInvoice(out.txn);
   };
 
   const completeUpiPayment = () => {
