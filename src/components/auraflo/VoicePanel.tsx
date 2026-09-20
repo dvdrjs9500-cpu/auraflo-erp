@@ -25,11 +25,9 @@ export function VoicePanel() {
   const [customerName, setCustomerName] = useState("");
   const [paymentMessage, setPaymentMessage] = useState("");
   const [pendingCreditTranscript, setPendingCreditTranscript] = useState<string | null>(null);
-  // Holds the parsed sale utterance while the cashier picks Cash or UPI on the touch screen.
   const [pendingSaleTranscript, setPendingSaleTranscript] = useState<string | null>(null);
   const [pendingUpiTranscript, setPendingUpiTranscript] = useState<string | null>(null);
   const [upiPhase, setUpiPhase] = useState<"qr" | null>(null);
-  // Drives the shared "payment successful" tick screen for BOTH cash and UPI completions.
   const [successPhase, setSuccessPhase] = useState<"cash" | "upi" | null>(null);
   const [completedTxn, setCompletedTxn] = useState<ReturnType<typeof execute>["txn"]>(null);
 
@@ -45,9 +43,6 @@ export function VoicePanel() {
     if (out.txn?.kind === "sale") setBillAmount(out.txn.amount);
   }, [execute, pendingUpiTranscript, upiPhase]);
 
-  // Single reset path for a finished transaction (cash OR upi): show the tick,
-  // then open the invoice, then fully clear state — including the transcript,
-  // which is what was causing the render loop before.
   useEffect(() => {
     if (!successPhase) return;
 
@@ -72,9 +67,6 @@ export function VoicePanel() {
     return () => window.clearTimeout(timeout);
   }, [finalizeUpiPayment, paymentState, pendingUpiTranscript, upiPhase]);
 
-  // Credit doesn't go through the tick screen, so give it its own reset once
-  // the customer name has been captured, otherwise the panel would stay
-  // stuck on "credit" and ignore all further voice input.
   useEffect(() => {
     if (paymentState !== "credit" || pendingCreditTranscript) return;
     const timeout = window.setTimeout(() => {
@@ -99,24 +91,16 @@ export function VoicePanel() {
     return () => window.clearTimeout(timeout);
   }, [paymentMessage, paymentState]);
 
-  const sendWhatsAppInvoice = () => {
-    // Placeholder for the production WhatsApp invoice integration.
-  };
+  const sendWhatsAppInvoice = () => {};
   const [typed, setTyped] = useState("");
   const [typeMode, setTypeMode] = useState(false);
   const [presetsOpen, setPresetsOpen] = useState(true);
 
   const handle = (text: string) => {
-    // Block new voice input while a transaction is mid-flight (payment
-    // selection, QR pending, or just completed) — except while we're
-    // actively waiting for a spoken customer name for a credit sale.
-    if (paymentState !== "idle" && !pendingCreditTranscript) return;
+    if (paymentState !== "idle" && paymentState !== "payment_selection" && !pendingCreditTranscript) return;
 
     setTranscript(text);
     const normalized = text
-      // Web Speech API results can carry zero-width spaces/joiners, BOM, and
-      // other invisible Unicode formatting chars that make word-boundary
-      // regexes silently fail even though the text "looks" fine on screen.
       .replace(/[\u200B-\u200F\u202A-\u202E\uFEFF]/g, "")
       .normalize("NFKC")
       .toLowerCase()
@@ -124,8 +108,6 @@ export function VoicePanel() {
       .replace(/\s+/g, " ")
       .trim();
 
-    // The next utterance after "kadan" is the customer name. Do this before
-    // anything else so a name can't be mistaken for another command.
     if (pendingCreditTranscript) {
       const spokenCustomerName = text.trim();
       if (!spokenCustomerName) return;
@@ -141,22 +123,32 @@ export function VoicePanel() {
       return;
     }
 
-    // Ruthless on purpose: word-boundary regexes are too easy to defeat with
-    // stray Unicode from the speech recognizer. `normalized` is already
-    // lowercased and stripped of invisible characters above, so a plain
-    // substring match is both simpler and more reliable here.
-    const isCredit = normalized.includes("kadan");
-    if (isCredit) {
-      setPendingCreditTranscript(text);
-      setPaymentState("credit");
-      setPaymentMessage("Yaaruku kadan?");
-      return;
-    }
-
-    // Voice only handles parsing the sale now — payment method is always a
-    // touch choice, so we never listen for "cash" / "upi" / "gpay" here.
     const parsed = preview(text);
     const amount = parsed.amount ?? 0;
+    
+    // Ruthless check catching all variations and bypassing formatting ghosts
+    const isCredit = normalized.includes("kadan") || normalized.includes("credit") || normalized.includes("கடன்");
+
+    if (paymentState === "payment_selection" && !isCredit && amount === 0) return;
+
+    if (isCredit) {
+      if (amount > 0) {
+        // Process a full sentence immediately: "Murugan 2 bag ponni arisi kadan"
+        const out = execute(text);
+        setPaymentState("credit");
+        setPaymentMessage("Credit recorded successfully.");
+        if (out.txn?.kind === "sale") {
+          setBillAmount(out.txn.amount);
+          openInvoice(out.txn);
+        }
+      } else {
+        // Just heard the intent, ask for details
+        setPendingCreditTranscript(text);
+        setPaymentState("credit");
+        setPaymentMessage("Yaaruku kadan?");
+      }
+      return;
+    }
 
     if (amount > 0) {
       setBillAmount(amount);
@@ -165,8 +157,6 @@ export function VoicePanel() {
       return;
     }
 
-    // Not a sale and not a payment/credit command — let it fall through to
-    // whatever other command handling `execute` supports.
     const out = execute(text);
     if (out.txn?.kind === "sale") openInvoice(out.txn);
   };
