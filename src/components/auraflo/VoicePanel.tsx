@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { CheckCircle2, Mic, Keyboard, Loader2, Send, Square, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,15 +22,25 @@ export function VoicePanel() {
   const [billAmount, setBillAmount] = useState(0);
   const [paymentMessage, setPaymentMessage] = useState("");
   const [pendingCreditTranscript, setPendingCreditTranscript] = useState<string | null>(null);
+  const [pendingUpiTranscript, setPendingUpiTranscript] = useState<string | null>(null);
+
+  const finalizeUpiPayment = useCallback(() => {
+    if (!pendingUpiTranscript) return;
+    const out = execute(pendingUpiTranscript);
+    setPendingUpiTranscript(null);
+    setPaymentState("Completed");
+    setPaymentMessage("Payment received successfully.");
+    if (out.txn?.kind === "sale") {
+      setBillAmount(out.txn.amount);
+      openInvoice(out.txn);
+    }
+  }, [execute, openInvoice, pendingUpiTranscript]);
 
   useEffect(() => {
-    if (paymentState !== "Pending" || billAmount <= 0) return;
-    const timeout = window.setTimeout(() => {
-      setPaymentState("Completed");
-      setPaymentMessage("Payment received successfully.");
-    }, 5000);
+    if (paymentState !== "Pending" || !pendingUpiTranscript) return;
+    const timeout = window.setTimeout(finalizeUpiPayment, 5000);
     return () => window.clearTimeout(timeout);
-  }, [paymentState, billAmount]);
+  }, [finalizeUpiPayment, paymentState, pendingUpiTranscript]);
 
   useEffect(() => {
     if (!paymentMessage || paymentState === "Pending") return;
@@ -46,7 +56,12 @@ export function VoicePanel() {
   const [presetsOpen, setPresetsOpen] = useState(true);
 
   const handle = (text: string) => {
-    const normalized = text.toLowerCase().replace(/[.,!?]/g, " ").replace(/\s+/g, " ").trim();
+    if (paymentState === "Pending") return;
+    const normalized = text
+      .toLowerCase()
+      .replace(/[.,!?]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
 
     // The next utterance after "kadan" is the customer name. Do this before
     // checking payment keywords so a name like "Cash" cannot change the flow.
@@ -66,13 +81,15 @@ export function VoicePanel() {
 
     const isCash = /(?:^|\s)(?:kaasu kooduthaaru|kaasu|cash)(?:$|\s)/i.test(normalized);
     const isCredit = /(?:^|\s)kadan(?:$|\s)/i.test(normalized);
-    const isUpi = /(?:^|\s)(?:waiting to pay|wait(?:ing)? to pay|upi|gpay|google pay|phonepe|paytm|scan|scan pannunga|scan pannu)(?:$|\s)/i.test(normalized);
+    const isUpi =
+      /(?:^|\s)(?:waiting to pay|wait(?:ing)? to pay|upi|gpay|google pay|phonepe|paytm|scan|scan pannunga|scan pannu)(?:$|\s)/i.test(
+        normalized,
+      );
 
     // Parse the sale when possible, but payment commands must also work when
     // the utterance contains only "cash", "kadan", or "upi".
     const parsed = preview(text);
-    const out = isCredit ? null : execute(text);
-    const amount = out?.txn?.amount ?? parsed.amount ?? billAmount;
+    const amount = parsed.amount && parsed.amount > 0 ? parsed.amount : billAmount;
     if (amount > 0) setBillAmount(amount);
 
     if (isCredit) {
@@ -83,20 +100,27 @@ export function VoicePanel() {
     }
 
     if (isCash) {
+      const out = execute(text);
       setPaymentState("Completed");
       setPaymentMessage("Payment completed successfully.");
       sendWhatsAppInvoice();
+      if (out.txn?.kind === "sale") openInvoice(out.txn);
     } else if (isUpi) {
+      if (amount <= 0) {
+        setPaymentMessage("Please say the items and bill amount before choosing UPI.");
+        return;
+      }
+      setPendingUpiTranscript(text);
       setPaymentState("Pending");
       setPaymentMessage("Scan the QR code to complete payment.");
+    } else {
+      const out = execute(text);
+      if (out.txn?.kind === "sale") openInvoice(out.txn);
     }
-
-    if (out?.txn?.kind === "sale") openInvoice(out.txn);
   };
 
   const completeUpiPayment = () => {
-    setPaymentState("Completed");
-    setPaymentMessage("Payment completed successfully.");
+    finalizeUpiPayment();
   };
 
   const { supported, status, interim, error, start, stop, runManual } = useSpeech({
@@ -199,7 +223,7 @@ export function VoicePanel() {
           </div>
         )}
 
-        {presetsOpen && !listening && (
+        {presetsOpen && !listening && paymentState !== "Pending" && (
           <div className="flex gap-1.5 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none]">
             {PRESETS.map((p) => (
               <button
@@ -220,6 +244,7 @@ export function VoicePanel() {
               value={typed}
               autoFocus
               placeholder="Type: Murugan, Ponni rice 2 mootai, 2900 rupees, UPI paid"
+              disabled={paymentState === "Pending"}
               onChange={(e) => setTyped(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.nativeEvent.isComposing && e.keyCode !== 229) {
@@ -271,7 +296,7 @@ export function VoicePanel() {
 
             <button
               onClick={() => (listening ? stop() : start())}
-              disabled={processing}
+              disabled={processing || paymentState === "Pending"}
               aria-label={listening ? "Stop listening" : "Tap to speak"}
               className={cn(
                 "relative flex size-20 shrink-0 items-center justify-center rounded-full text-primary-foreground shadow-lift transition-transform active:scale-95",
