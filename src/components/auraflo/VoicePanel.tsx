@@ -107,16 +107,25 @@ export function VoicePanel() {
   const [presetsOpen, setPresetsOpen] = useState(true);
 
   const handle = (text: string) => {
-    // Allow voice to override the UPI/Cash modal if the user forgot to say "kadan" initially
-    if (paymentState !== "idle" && paymentState !== "payment_selection" && !pendingCreditTranscript) return;
+    // Block new voice input while a transaction is mid-flight (payment
+    // selection, QR pending, or just completed) — except while we're
+    // actively waiting for a spoken customer name for a credit sale.
+    if (paymentState !== "idle" && !pendingCreditTranscript) return;
 
     setTranscript(text);
     const normalized = text
+      // Web Speech API results can carry zero-width spaces/joiners, BOM, and
+      // other invisible Unicode formatting chars that make word-boundary
+      // regexes silently fail even though the text "looks" fine on screen.
+      .replace(/[\u200B-\u200F\u202A-\u202E\uFEFF]/g, "")
+      .normalize("NFKC")
       .toLowerCase()
       .replace(/[.,!?]/g, " ")
       .replace(/\s+/g, " ")
       .trim();
 
+    // The next utterance after "kadan" is the customer name. Do this before
+    // anything else so a name can't be mistaken for another command.
     if (pendingCreditTranscript) {
       const spokenCustomerName = text.trim();
       if (!spokenCustomerName) return;
@@ -132,31 +141,22 @@ export function VoicePanel() {
       return;
     }
 
-    const parsed = preview(text);
-    const amount = parsed.amount ?? 0;
-    const isCredit = /(?:^|\s)(kadan|credit)(?:$|\s)/i.test(normalized);
-
-    // If modal is open and background noise is heard (not credit, no items), ignore it
-    if (paymentState === "payment_selection" && !isCredit && amount === 0) return;
-
+    // Ruthless on purpose: word-boundary regexes are too easy to defeat with
+    // stray Unicode from the speech recognizer. `normalized` is already
+    // lowercased and stripped of invisible characters above, so a plain
+    // substring match is both simpler and more reliable here.
+    const isCredit = normalized.includes("kadan");
     if (isCredit) {
-      if (amount > 0) {
-        // Handled in one sentence: "Murugan 2 bag ponni arisi kadan"
-        const out = execute(text);
-        setPaymentState("credit");
-        setPaymentMessage("Credit recorded successfully.");
-        if (out.txn?.kind === "sale") {
-          setBillAmount(out.txn.amount);
-          openInvoice(out.txn);
-        }
-      } else {
-        // Just said "kadan", need to ask for details
-        setPendingCreditTranscript(text);
-        setPaymentState("credit");
-        setPaymentMessage("Yaaruku kadan?");
-      }
+      setPendingCreditTranscript(text);
+      setPaymentState("credit");
+      setPaymentMessage("Yaaruku kadan?");
       return;
     }
+
+    // Voice only handles parsing the sale now — payment method is always a
+    // touch choice, so we never listen for "cash" / "upi" / "gpay" here.
+    const parsed = preview(text);
+    const amount = parsed.amount ?? 0;
 
     if (amount > 0) {
       setBillAmount(amount);
@@ -165,6 +165,8 @@ export function VoicePanel() {
       return;
     }
 
+    // Not a sale and not a payment/credit command — let it fall through to
+    // whatever other command handling `execute` supports.
     const out = execute(text);
     if (out.txn?.kind === "sale") openInvoice(out.txn);
   };
