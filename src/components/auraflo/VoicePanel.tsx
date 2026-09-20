@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { CheckCircle2, Mic, Keyboard, Loader2, Send, Square, Zap } from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -23,24 +24,31 @@ export function VoicePanel() {
   const [paymentMessage, setPaymentMessage] = useState("");
   const [pendingCreditTranscript, setPendingCreditTranscript] = useState<string | null>(null);
   const [pendingUpiTranscript, setPendingUpiTranscript] = useState<string | null>(null);
+  const [upiPhase, setUpiPhase] = useState<"qr" | "success" | null>(null);
 
   const finalizeUpiPayment = useCallback(() => {
-    if (!pendingUpiTranscript) return;
+    if (!pendingUpiTranscript || upiPhase !== "qr") return;
     const out = execute(pendingUpiTranscript);
     setPendingUpiTranscript(null);
     setPaymentState("Completed");
     setPaymentMessage("Payment received successfully.");
-    if (out.txn?.kind === "sale") {
-      setBillAmount(out.txn.amount);
-      openInvoice(out.txn);
-    }
-  }, [execute, openInvoice, pendingUpiTranscript]);
+    setUpiPhase("success");
+    window.setTimeout(() => {
+      setUpiPhase(null);
+      if (out.txn?.kind === "sale") {
+        setBillAmount(out.txn.amount);
+        openInvoice(out.txn);
+      }
+      setPaymentState("Idle");
+      setPaymentMessage("");
+    }, 2000);
+  }, [execute, openInvoice, pendingUpiTranscript, upiPhase]);
 
   useEffect(() => {
-    if (paymentState !== "Pending" || !pendingUpiTranscript) return;
+    if (paymentState !== "Pending" || !pendingUpiTranscript || upiPhase !== "qr") return;
     const timeout = window.setTimeout(finalizeUpiPayment, 5000);
     return () => window.clearTimeout(timeout);
-  }, [finalizeUpiPayment, paymentState, pendingUpiTranscript]);
+  }, [finalizeUpiPayment, paymentState, pendingUpiTranscript, upiPhase]);
 
   useEffect(() => {
     if (!paymentMessage || paymentState === "Pending") return;
@@ -56,7 +64,7 @@ export function VoicePanel() {
   const [presetsOpen, setPresetsOpen] = useState(true);
 
   const handle = (text: string) => {
-    if (paymentState === "Pending") return;
+    if (paymentState === "Pending" || upiPhase === "success") return;
     const normalized = text
       .toLowerCase()
       .replace(/[.,!?]/g, " ")
@@ -171,55 +179,73 @@ export function VoicePanel() {
           <p className="rounded-xl bg-destructive/10 px-3 py-2 text-xs text-destructive">{error}</p>
         )}
 
-        {(paymentMessage || paymentState !== "Idle") && !listening && !processing && (
-          <div className="rounded-2xl border bg-card/95 p-3 shadow-lift backdrop-blur">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-[10px] font-semibold tracking-wide text-muted-foreground uppercase">
-                  Payment · {paymentState}
-                </p>
-                <p className="mt-1 text-sm font-semibold">{paymentMessage}</p>
+        {(paymentMessage || paymentState !== "Idle") &&
+          !listening &&
+          !processing &&
+          paymentState !== "Pending" &&
+          !upiPhase && (
+            <div className="rounded-2xl border bg-card/95 p-3 shadow-lift backdrop-blur">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-[10px] font-semibold tracking-wide text-muted-foreground uppercase">
+                    Payment · {paymentState}
+                  </p>
+                  <p className="mt-1 text-sm font-semibold">{paymentMessage}</p>
+                </div>
               </div>
-              {paymentState === "Completed" && (
-                <span
-                  className="flex size-10 items-center justify-center rounded-full bg-accent/15 text-accent animate-in zoom-in duration-500"
-                  aria-label="Completed"
-                >
-                  <CheckCircle2 className="size-7 animate-in zoom-in duration-700" />
-                </span>
+              {paymentState === "Credit" && pendingCreditTranscript && (
+                <p className="mt-2 text-xs text-muted-foreground">Yaaruku kadan?</p>
               )}
             </div>
-            {paymentState === "Credit" && pendingCreditTranscript && (
-              <p className="mt-2 text-xs text-muted-foreground">Yaaruku kadan?</p>
-            )}
-            {paymentState === "Pending" && billAmount > 0 && (
-              <div className="mt-3 flex items-center gap-3 rounded-xl bg-muted p-3 animate-in slide-in-from-bottom-2 duration-300">
-                <div
-                  className="grid size-24 shrink-0 grid-cols-5 gap-0.5 rounded-lg bg-white p-2 shadow-sm"
-                  role="img"
+          )}
+
+        {paymentState === "Pending" && upiPhase === "qr" && billAmount > 0 && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-background/70 p-4 backdrop-blur-sm"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Google Pay payment"
+          >
+            <div className="w-full max-w-sm rounded-3xl border bg-card p-5 text-center shadow-2xl">
+              <p className="text-lg font-bold">Google Pay</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Scan to pay ₹{billAmount.toFixed(2)}
+              </p>
+              <div className="mx-auto mt-4 w-fit rounded-2xl bg-white p-4 shadow-inner">
+                <QRCodeSVG
+                  value={`upi://pay?pa=myupi@bank&pn=Auraflo&am=${billAmount.toFixed(2)}&cu=INR`}
+                  size={250}
+                  level="M"
+                  includeMargin
                   aria-label={`UPI QR code for ₹${billAmount.toFixed(2)}`}
-                >
-                  {Array.from({ length: 25 }, (_, index) => (
-                    <span
-                      key={index}
-                      className={cn(
-                        "rounded-[1px]",
-                        (index * 7 + billAmount) % 5 < 2 ? "bg-black" : "bg-white",
-                      )}
-                    />
-                  ))}
-                </div>
-                <div className="min-w-0 text-xs">
-                  <p className="font-semibold">Scan to pay ₹{billAmount.toFixed(2)}</p>
-                  <p className="mt-1 break-all text-muted-foreground">
-                    upi://pay?pa=myupi@bank&pn=Auraflo&am={billAmount.toFixed(2)}&cu=INR
-                  </p>
-                  <Button size="sm" className="mt-2" onClick={completeUpiPayment}>
-                    Done
-                  </Button>
-                </div>
+                />
               </div>
-            )}
+              <p className="mt-3 break-all text-[10px] text-muted-foreground">
+                UPI: myupi@bank · Amount locked at ₹{billAmount.toFixed(2)}
+              </p>
+              <Button className="mt-4 w-full" onClick={completeUpiPayment}>
+                Done
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {upiPhase === "success" && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-background/70 p-4 backdrop-blur-sm"
+            role="status"
+            aria-live="polite"
+          >
+            <div className="w-full max-w-sm rounded-3xl border bg-card p-8 text-center shadow-2xl">
+              <CheckCircle2
+                className="mx-auto size-28 text-accent animate-in zoom-in duration-700"
+                strokeWidth={1.5}
+              />
+              <p className="mt-4 text-xl font-bold text-accent">Payment successful</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                ₹{billAmount.toFixed(2)} received
+              </p>
+            </div>
           </div>
         )}
 
