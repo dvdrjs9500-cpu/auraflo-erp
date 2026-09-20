@@ -164,12 +164,16 @@ export function InvoiceModal() {
             className="col-span-2 bg-accent text-accent-foreground hover:bg-accent/90"
             onClick={() => {
               if ("speechSynthesis" in window) {
-                const utterance = new SpeechSynthesisUtterance("விற்பனை பதிவு செய்யப்பட்டது");
+                const utterance = new SpeechSynthesisUtterance("Virpanai pathivu seiyapattadhu");
                 utterance.lang = "ta-IN";
                 window.speechSynthesis.cancel();
                 window.speechSynthesis.speak(utterance);
               }
-              window.open(`https://wa.me/?text=${encodeURIComponent(`${shareText}\n\nAudio confirmation: விற்பனை பதிவு செய்யப்பட்டது`)}`, "_blank", "noopener");
+              window.open(
+                `https://wa.me/?text=${encodeURIComponent(`${shareText}\n\nAudio confirmation: விற்பனை பதிவு செய்யப்பட்டது`)}`,
+                "_blank",
+                "noopener",
+              );
             }}
           >
             <Headphones className="size-4" /> Send WhatsApp Audio + Receipt
@@ -194,4 +198,3 @@ export function InvoiceModal() {
     </Dialog>
   );
 }
-
