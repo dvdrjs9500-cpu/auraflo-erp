@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Mic, Keyboard, Loader2, Send, Square, Zap } from "lucide-react";
+import { CheckCircle2, Mic, Keyboard, Loader2, Send, Square, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -24,10 +24,19 @@ export function VoicePanel() {
   const [pendingCreditTranscript, setPendingCreditTranscript] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!paymentMessage) return;
+    if (paymentState !== "Pending" || billAmount <= 0) return;
+    const timeout = window.setTimeout(() => {
+      setPaymentState("Completed");
+      setPaymentMessage("Payment received successfully.");
+    }, 5000);
+    return () => window.clearTimeout(timeout);
+  }, [paymentState, billAmount]);
+
+  useEffect(() => {
+    if (!paymentMessage || paymentState === "Pending") return;
     const timeout = window.setTimeout(() => setPaymentMessage(""), 3200);
     return () => window.clearTimeout(timeout);
-  }, [paymentMessage]);
+  }, [paymentMessage, paymentState]);
 
   const sendWhatsAppInvoice = () => {
     // Placeholder for the production WhatsApp invoice integration.
@@ -57,7 +66,7 @@ export function VoicePanel() {
 
     const isCash = /(?:^|\s)(?:kaasu kooduthaaru|kaasu|cash)(?:$|\s)/i.test(normalized);
     const isCredit = /(?:^|\s)kadan(?:$|\s)/i.test(normalized);
-    const isUpi = /(?:^|\s)(?:waiting to pay|upi|scan)(?:$|\s)/i.test(normalized);
+    const isUpi = /(?:^|\s)(?:waiting to pay|wait(?:ing)? to pay|upi|gpay|google pay|phonepe|paytm|scan|scan pannunga|scan pannu)(?:$|\s)/i.test(normalized);
 
     // Parse the sale when possible, but payment commands must also work when
     // the utterance contains only "cash", "kadan", or "upi".
@@ -148,20 +157,23 @@ export function VoicePanel() {
                 <p className="mt-1 text-sm font-semibold">{paymentMessage}</p>
               </div>
               {paymentState === "Completed" && (
-                <span className="text-xl text-accent" aria-label="Completed">
-                  ✓
+                <span
+                  className="flex size-10 items-center justify-center rounded-full bg-accent/15 text-accent animate-in zoom-in duration-500"
+                  aria-label="Completed"
+                >
+                  <CheckCircle2 className="size-7 animate-in zoom-in duration-700" />
                 </span>
               )}
             </div>
             {paymentState === "Credit" && pendingCreditTranscript && (
               <p className="mt-2 text-xs text-muted-foreground">Yaaruku kadan?</p>
             )}
-            {paymentState === "Pending" && (
-              <div className="mt-3 flex items-center gap-3 rounded-xl bg-muted p-3">
+            {paymentState === "Pending" && billAmount > 0 && (
+              <div className="mt-3 flex items-center gap-3 rounded-xl bg-muted p-3 animate-in slide-in-from-bottom-2 duration-300">
                 <div
-                  className="grid size-24 shrink-0 grid-cols-5 gap-0.5 rounded-lg bg-white p-2"
+                  className="grid size-24 shrink-0 grid-cols-5 gap-0.5 rounded-lg bg-white p-2 shadow-sm"
                   role="img"
-                  aria-label="UPI QR code placeholder"
+                  aria-label={`UPI QR code for ₹${billAmount.toFixed(2)}`}
                 >
                   {Array.from({ length: 25 }, (_, index) => (
                     <span
