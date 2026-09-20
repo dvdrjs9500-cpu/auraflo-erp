@@ -107,10 +107,8 @@ export function VoicePanel() {
   const [presetsOpen, setPresetsOpen] = useState(true);
 
   const handle = (text: string) => {
-    // Block new voice input while a transaction is mid-flight (payment
-    // selection, QR pending, or just completed) — except while we're
-    // actively waiting for a spoken customer name for a credit sale.
-    if (paymentState !== "idle" && !pendingCreditTranscript) return;
+    // Allow voice to override the UPI/Cash modal if the user forgot to say "kadan" initially
+    if (paymentState !== "idle" && paymentState !== "payment_selection" && !pendingCreditTranscript) return;
 
     setTranscript(text);
     const normalized = text
@@ -119,8 +117,6 @@ export function VoicePanel() {
       .replace(/\s+/g, " ")
       .trim();
 
-    // The next utterance after "kadan" is the customer name. Do this before
-    // anything else so a name can't be mistaken for another command.
     if (pendingCreditTranscript) {
       const spokenCustomerName = text.trim();
       if (!spokenCustomerName) return;
@@ -136,18 +132,31 @@ export function VoicePanel() {
       return;
     }
 
-    const isCredit = /(?:^|\s)kadan(?:$|\s)/i.test(normalized);
-    if (isCredit) {
-      setPendingCreditTranscript(text);
-      setPaymentState("credit");
-      setPaymentMessage("Yaaruku kadan?");
-      return;
-    }
-
-    // Voice only handles parsing the sale now — payment method is always a
-    // touch choice, so we never listen for "cash" / "upi" / "gpay" here.
     const parsed = preview(text);
     const amount = parsed.amount ?? 0;
+    const isCredit = /(?:^|\s)(kadan|credit)(?:$|\s)/i.test(normalized);
+
+    // If modal is open and background noise is heard (not credit, no items), ignore it
+    if (paymentState === "payment_selection" && !isCredit && amount === 0) return;
+
+    if (isCredit) {
+      if (amount > 0) {
+        // Handled in one sentence: "Murugan 2 bag ponni arisi kadan"
+        const out = execute(text);
+        setPaymentState("credit");
+        setPaymentMessage("Credit recorded successfully.");
+        if (out.txn?.kind === "sale") {
+          setBillAmount(out.txn.amount);
+          openInvoice(out.txn);
+        }
+      } else {
+        // Just said "kadan", need to ask for details
+        setPendingCreditTranscript(text);
+        setPaymentState("credit");
+        setPaymentMessage("Yaaruku kadan?");
+      }
+      return;
+    }
 
     if (amount > 0) {
       setBillAmount(amount);
@@ -156,8 +165,6 @@ export function VoicePanel() {
       return;
     }
 
-    // Not a sale and not a payment/credit command — let it fall through to
-    // whatever other command handling `execute` supports.
     const out = execute(text);
     if (out.txn?.kind === "sale") openInvoice(out.txn);
   };
