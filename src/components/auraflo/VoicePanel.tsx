@@ -27,26 +27,33 @@ export function VoicePanel() {
   const [pendingCreditTranscript, setPendingCreditTranscript] = useState<string | null>(null);
   const [pendingUpiTranscript, setPendingUpiTranscript] = useState<string | null>(null);
   const [upiPhase, setUpiPhase] = useState<"qr" | "success" | null>(null);
+  const [completedTxn, setCompletedTxn] = useState<ReturnType<typeof execute>["txn"]>(null);
 
   const finalizeUpiPayment = useCallback(() => {
     if (!pendingUpiTranscript || upiPhase !== "qr") return;
     const out = execute(pendingUpiTranscript);
     setPendingUpiTranscript(null);
+    setCompletedTxn(out.txn?.kind === "sale" ? out.txn : null);
     setPaymentState("completed");
     setPaymentMessage("Payment received successfully.");
     setUpiPhase("success");
-    if (out.txn?.kind === "sale") {
-      setBillAmount(out.txn.amount);
-      setInvoiceTxn(out.txn);
-    }
-    window.setTimeout(() => {
+    if (out.txn?.kind === "sale") setBillAmount(out.txn.amount);
+  }, [execute, pendingUpiTranscript, upiPhase]);
+
+  useEffect(() => {
+    if (upiPhase !== "success") return;
+
+    const timeout = window.setTimeout(() => {
+      if (completedTxn?.kind === "sale") openInvoice(completedTxn);
       setUpiPhase(null);
-      if (out.txn?.kind === "sale") openInvoice(out.txn);
       setPaymentState("idle");
       setPaymentMessage("");
-      setInvoiceTxn(undefined);
+      setPendingUpiTranscript(null);
+      setCompletedTxn(null);
     }, 2000);
-  }, [execute, openInvoice, pendingUpiTranscript, upiPhase]);
+
+    return () => window.clearTimeout(timeout);
+  }, [completedTxn, openInvoice, upiPhase]);
 
   useEffect(() => {
     if (paymentState !== "pending_upi" || !pendingUpiTranscript || upiPhase !== "qr") return;
@@ -210,7 +217,7 @@ export function VoicePanel() {
         {(paymentMessage || paymentState !== "idle") &&
           !listening &&
           !processing &&
-          paymentState !== "Pending" &&
+          paymentState !== "pending_upi" &&
           !upiPhase && (
             <div className="rounded-2xl border bg-card/95 p-3 shadow-lift backdrop-blur">
               <div className="flex items-center justify-between gap-3">
@@ -277,7 +284,7 @@ export function VoicePanel() {
           </div>
         )}
 
-        {presetsOpen && !listening && paymentState !== "Pending" && (
+        {presetsOpen && !listening && paymentState !== "pending_upi" && (
           <div className="flex gap-1.5 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none]">
             {PRESETS.map((p) => (
               <button
