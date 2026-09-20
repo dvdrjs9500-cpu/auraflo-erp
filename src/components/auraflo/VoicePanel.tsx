@@ -50,6 +50,7 @@ export function VoicePanel() {
       setPaymentMessage("");
       setPendingUpiTranscript(null);
       setCompletedTxn(null);
+      setTranscript("");
     }, 2000);
 
     return () => window.clearTimeout(timeout);
@@ -62,8 +63,9 @@ export function VoicePanel() {
   }, [finalizeUpiPayment, paymentState, pendingUpiTranscript, upiPhase]);
 
   useEffect(() => {
-    if (!transcript || paymentState !== "idle") return;
-    const normalized = transcript.toLowerCase();
+    const spokenTranscript = transcript.trim();
+    if (!spokenTranscript || paymentState !== "idle") return;
+    const normalized = spokenTranscript.toLowerCase();
     if (!normalized.includes("upi") && !normalized.includes("gpay")) return;
     const amount = preview(transcript).amount;
     if (!amount || amount <= 0) return;
